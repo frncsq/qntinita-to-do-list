@@ -7,7 +7,7 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors({origin: ['http://localhost:5173',], credentials: true}));
+app.use(cors({origin: ['http://localhost:5173', 'https://to-do-list-1-c0qq.onrender.com'], credentials: true}));
 app.use(session({
   secret: '1234567890', 
   resave: false,
