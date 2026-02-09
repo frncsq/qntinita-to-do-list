@@ -95,7 +95,7 @@ function Login() {
 							Don't have an account?{" "}
 							<button
 								type="button"
-								onClick={() => navigate('/register')}
+								onClick={() => navigate('client/register')}
 								className="text-pink-600 hover:underline font-medium bg-none border-none cursor-pointer"
 							>
 								Create account
