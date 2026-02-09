@@ -91,7 +91,16 @@ function Login() {
 					</form>
 
 					<div className="mt-6 text-center">
-					<p className="text-sm text-gray-600">Don't have an account? <a href='/register' className="text-pink-600 hover:underline font-medium">Create account</a></p>
+						<p className="text-sm text-gray-600">
+							Don't have an account?{" "}
+							<button
+								type="button"
+								onClick={() => navigate('/register')}
+								className="text-pink-600 hover:underline font-medium bg-none border-none cursor-pointer"
+							>
+								Create account
+							</button>
+						</p>
 					</div>
 				</div>
 			</div>

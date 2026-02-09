@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: [
-    "http://localhost:5173",
+    
     "https://qntinita-to-do-list-dzay7f8xu-rises-projects-b13889a1.vercel.app",
     "https://qntinita-to-do-list.vercel.app"
   ],
