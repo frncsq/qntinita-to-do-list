@@ -11,11 +11,12 @@ function Home() {
     const [editingTitle, setEditingTitle] = useState("")
     const [isEditing, setIsEditing] = useState(false)
     const [error, setError] = useState("")
+
+    // Simple in-memory tasks grouped by listId to match the UI concept
     const [tasks, setTasks] = useState([])
     const [showAddTaskForm, setShowAddTaskForm] = useState(false)
     const [newTask, setNewTask] = useState({ title: "", description: "", status: "pending" })
     const [editingTask, setEditingTask] = useState(null)
-    const [isEditingTask, setIsEditingTask] = useState(false)
 
     const API_URL = import.meta.env.VITE_API_URL
 
@@ -32,7 +33,7 @@ function Home() {
                 setLists(response.data.list)
             }
         } catch (error) {
-            console.error('Error fetching lists:', error)
+            console.error("Error fetching lists:", error)
             setError("Failed to load lists")
         } finally {
             setLoading(false)
@@ -56,7 +57,7 @@ function Home() {
                 fetchLists()
             }
         } catch (error) {
-            console.error('Error adding list:', error)
+            console.error("Error adding list:", error)
             setError("Failed to add list")
         }
     }
@@ -79,7 +80,7 @@ function Home() {
                 setSelectedList(null)
             }
         } catch (error) {
-            console.error('Error editing list:', error)
+            console.error("Error editing list:", error)
             setError("Failed to edit list")
         }
     }
@@ -95,11 +96,13 @@ function Home() {
                 listTitle: selectedList.title
             })
             if (response.data.success) {
+                // Remove any in-memory tasks for this list as well
+                setTasks((prev) => prev.filter((t) => t.listId !== selectedList.id))
                 setSelectedList(null)
                 fetchLists()
             }
         } catch (error) {
-            console.error('Error deleting list:', error)
+            console.error("Error deleting list:", error)
             setError("Failed to delete list")
         }
     }
@@ -108,140 +111,251 @@ function Home() {
         setSelectedList(list)
         setEditingTitle(list.title)
         setIsEditing(false)
+        setShowAddTaskForm(false)
+        setEditingTask(null)
+    }
+
+    const handleBackToLists = () => {
+        setSelectedList(null)
+        setIsEditing(false)
+        setEditingTitle("")
+        setShowAddTaskForm(false)
+        setEditingTask(null)
+    }
+
+    // --- Task handlers ---
+    const selectedListTasks = selectedList
+        ? tasks.filter((task) => task.listId === selectedList.id)
+        : []
+
+    const handleAddTask = () => {
+        if (!selectedList || !newTask.title.trim()) return
+
+        const taskToAdd = {
+            id: Date.now(),
+            listId: selectedList.id,
+            title: newTask.title.trim(),
+            description: newTask.description.trim(),
+            status: "pending"
+        }
+
+        setTasks((prev) => [...prev, taskToAdd])
+        setNewTask({ title: "", description: "", status: "pending" })
+        setShowAddTaskForm(false)
+    }
+
+    const handleToggleTaskStatus = (taskId) => {
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.id === taskId
+                    ? {
+                          ...task,
+                          status: task.status === "completed" ? "pending" : "completed"
+                      }
+                    : task
+            )
+        )
+    }
+
+    const handleDeleteTask = (taskId) => {
+        setTasks((prev) => prev.filter((task) => task.id !== taskId))
+    }
+
+    const handleStartEditTask = (task) => {
+        setEditingTask({ ...task })
+        setShowAddTaskForm(false)
+    }
+
+    const handleSaveEditTask = () => {
+        if (!editingTask || !editingTask.title.trim()) {
+            return
+        }
+
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.id === editingTask.id
+                    ? { ...task, title: editingTask.title.trim(), description: editingTask.description.trim() }
+                    : task
+            )
+        )
+        setEditingTask(null)
     }
 
     if (loading) {
         return (
             <>
                 <Header />
-                <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="flex h-screen items-center justify-center bg-slate-50">
                     <p className="text-pink-600 text-lg">Loading...</p>
                 </div>
             </>
         )
     }
 
-    return (
-        <>
-            <Header />
-            <div className="flex h-screen bg-gray-50">
-                {/* Left Sidebar - List of Lists */}
-                <div className="w-full md:w-96 border-r border-gray-200 bg-white overflow-y-auto flex flex-col">
-                    <div className="p-8 flex-1 flex flex-col">
-                        <h1 className="text-3xl font-bold text-pink-900 mb-8 text-center">My Lists</h1>
+    // --- First screen: My To-Do Lists ---
+    if (!selectedList) {
+        return (
+            <>
+                <Header />
+                <main className="min-h-screen bg-slate-50">
+                    <div className="max-w-5xl mx-auto px-4 py-10">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                            <div>
+                                <h1 className="text-3xl font-bold text-slate-900">My To-Do Lists</h1>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Keep all your work, shopping, and personal tasks organized.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setShowAddForm((prev) => !prev)}
+                                className="inline-flex items-center justify-center rounded-full bg-pink-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-pink-300 hover:bg-pink-700 hover:shadow-md transition-all"
+                            >
+                                <span className="mr-2 text-lg leading-none">+</span>
+                                New list
+                            </button>
+                        </div>
 
                         {error && (
-                            <div className="mb-6 p-3 bg-red-50 border-l-4 border-red-400 rounded text-red-700 text-sm animate-pulse">
+                            <div className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                                 {error}
                             </div>
                         )}
 
-                        {/* Add new list form */}
-                        {showAddForm ? (
-                            <div className="mb-6 p-4 bg-pink-50 rounded-lg border border-pink-200">
+                        {showAddForm && (
+                            <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm shadow-slate-100">
+                                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">
+                                    List title
+                                </label>
                                 <input
                                     type="text"
                                     value={newTitle}
                                     onChange={(e) => setNewTitle(e.target.value)}
-                                    placeholder="Enter list title..."
-                                    className="w-full px-4 py-2 border border-pink-200 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                    placeholder="e.g. Work Tasks, Shopping, Personal"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-200"
                                     autoFocus
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddList()}
+                                    onKeyDown={(e) => e.key === "Enter" && handleAddList()}
                                 />
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleAddList}
-                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
-                                    >
-                                        Create
-                                    </button>
+                                <div className="mt-3 flex gap-2 justify-end">
                                     <button
                                         onClick={() => {
                                             setShowAddForm(false)
                                             setNewTitle("")
                                         }}
-                                        className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition font-medium"
+                                        className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 transition"
                                     >
                                         Cancel
                                     </button>
+                                    <button
+                                        onClick={handleAddList}
+                                        className="rounded-xl bg-pink-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-pink-300 hover:bg-pink-700 hover:shadow-md transition"
+                                    >
+                                        Create list
+                                    </button>
                                 </div>
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowAddForm(true)}
-                                className="flex items-center justify-center gap-2 text-pink-600 hover:text-pink-800 font-medium mb-8 transition"
-                            >
-                                <span className="text-2xl">+</span> New List
-                            </button>
                         )}
 
-                        {/* Lists */}
-                        <div className="space-y-3 flex-1">
-                            {lists.length === 0 ? (
-                                <p className="text-gray-500 text-center py-12">No lists yet. Create one to get started!</p>
-                            ) : (
-                                lists.map((list) => (
-                                    <div
-                                        key={list.id}
-                                        onClick={() => handleSelectList(list)}
-                                        className={`p-4 rounded-lg cursor-pointer transition border ${
-                                            selectedList?.id === list.id
-                                                ? "bg-pink-100 border-pink-300 shadow-md"
-                                                : "bg-white border-gray-200 hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        <h3 className="font-medium text-gray-800 truncate text-center">{list.title}</h3>
-                                        <p className="text-xs text-gray-500 mt-1 text-center">Status: {list.status}</p>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
+                        {lists.length === 0 ? (
+                            <div className="mt-16 flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/60 px-6 py-12 text-center shadow-sm shadow-slate-100">
+                                <p className="text-sm text-slate-500">
+                                    You don&apos;t have any lists yet. Start by creating your first to-do list.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                {lists.map((list) => {
+                                    const itemCount = tasks.filter((t) => t.listId === list.id).length
+                                    const countLabel = `${itemCount} item${itemCount === 1 ? "" : "s"}`
 
-                {/* Right Panel - List Details */}
-                {selectedList ? (
-                    <div className="flex-1 overflow-y-auto flex items-center justify-center bg-gray-100 p-8">
-                        <div className="w-full max-w-lg bg-white rounded-xl shadow-lg p-8">
-                            {/* Title */}
-                            <div className="mb-8 text-center">
+                                    return (
+                                        <button
+                                            key={list.id}
+                                            onClick={() => handleSelectList(list)}
+                                            className="group flex flex-col items-start rounded-3xl border border-slate-100 bg-white px-5 py-5 text-left shadow-sm shadow-slate-100 transition-all hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-md"
+                                        >
+                                            <div className="mb-3 inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                                                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                                {list.status || "pending"}
+                                            </div>
+                                            <h2 className="text-base font-semibold text-slate-900 truncate mb-1">
+                                                {list.title}
+                                            </h2>
+                                            <p className="text-xs text-slate-500 mb-4 line-clamp-2">
+                                                {/* Show description when your API provides it */}
+                                                {list.description || "Tap to see and manage the tasks in this list."}
+                                            </p>
+                                            <div className="mt-auto flex w-full items-center justify-between text-xs text-slate-500">
+                                                <span className="font-medium text-slate-700">{countLabel}</span>
+                                                <span className="inline-flex items-center gap-1 text-pink-600 group-hover:text-pink-700">
+                                                    View tasks
+                                                    <span className="text-sm transition-transform group-hover:translate-x-0.5">
+                                                        →
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </main>
+            </>
+        )
+    }
+
+    // --- Second screen: single list with its tasks ---
+    return (
+        <>
+            <Header />
+            <main className="min-h-screen bg-slate-50">
+                <div className="max-w-3xl mx-auto px-4 py-8">
+                    <button
+                        onClick={handleBackToLists}
+                        className="mb-6 inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900"
+                    >
+                        <span className="mr-2 text-lg leading-none">←</span>
+                        Back to lists
+                    </button>
+
+                    <div className="rounded-3xl bg-white px-6 py-6 shadow-md shadow-slate-100 border border-slate-100">
+                        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex-1">
                                 {isEditing ? (
                                     <input
                                         type="text"
                                         value={editingTitle}
                                         onChange={(e) => setEditingTitle(e.target.value)}
-                                        className="w-full text-3xl font-bold text-pink-900 px-4 py-2 border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-center"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xl font-semibold text-slate-900 focus:border-pink-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-200"
                                         autoFocus
                                     />
                                 ) : (
-                                    <h1 className="text-4xl font-bold text-pink-900">{selectedList.title}</h1>
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                                        {selectedList?.title}
+                                    </h1>
                                 )}
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {selectedList?.description ||
+                                        "Review today’s tasks, check off what’s done, and keep track of what’s next."}
+                                </p>
                             </div>
 
-                            {/* Status */}
-                            <div className="mb-8 pb-8 border-b border-gray-200 text-center">
-                                <label className="block text-sm font-medium text-gray-700 mb-3">Status</label>
-                                <span className="inline-block px-4 py-2 bg-pink-100 text-pink-700 rounded-full font-medium capitalize">
-                                    {selectedList.status}
-                                </span>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-3 justify-center">
+                            <div className="flex gap-2">
                                 {isEditing ? (
                                     <>
                                         <button
                                             onClick={handleEditList}
-                                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                                            className="rounded-xl bg-pink-600 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-pink-300 hover:bg-pink-700 hover:shadow-md transition"
                                         >
                                             Save
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setIsEditing(false)
-                                                setEditingTitle(selectedList.title)
+                                                setEditingTitle(selectedList?.title || "")
                                             }}
-                                            className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition font-medium"
+                                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
                                         >
                                             Cancel
                                         </button>
@@ -250,13 +364,13 @@ function Home() {
                                     <>
                                         <button
                                             onClick={() => setIsEditing(true)}
-                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
                                         >
-                                            Edit
+                                            Rename
                                         </button>
                                         <button
                                             onClick={handleDeleteList}
-                                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                                            className="rounded-xl bg-red-500 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-red-300 hover:bg-red-600 hover:shadow-md transition"
                                         >
                                             Delete
                                         </button>
@@ -264,13 +378,218 @@ function Home() {
                                 )}
                             </div>
                         </div>
+
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">
+                                Tasks
+                            </h2>
+                            <span className="text-xs text-slate-500">
+                                {selectedListTasks.length} item
+                                {selectedListTasks.length === 1 ? "" : "s"}
+                            </span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {selectedListTasks.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
+                                    No tasks yet. Add your first task for this list.
+                                </div>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {selectedListTasks.map((task) => {
+                                        const isCompleted = task.status === "completed"
+                                        const isEditingThis = editingTask && editingTask.id === task.id
+
+                                        return (
+                                            <li
+                                                key={task.id}
+                                                className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 shadow-sm shadow-slate-100 hover:border-pink-200 hover:bg-white transition"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isCompleted}
+                                                        onChange={() => handleToggleTaskStatus(task.id)}
+                                                        className="mt-1 h-4 w-4 rounded border-slate-300 text-pink-600 focus:ring-pink-500"
+                                                    />
+                                                    <div>
+                                                        {isEditingThis ? (
+                                                            <>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingTask.title}
+                                                                    onChange={(e) =>
+                                                                        setEditingTask((prev) => ({
+                                                                            ...prev,
+                                                                            title: e.target.value
+                                                                        }))
+                                                                    }
+                                                                    className="mb-1 w-full rounded-xl border border-slate-200 bg-white px-2 py-1 text-sm font-medium text-slate-900 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
+                                                                />
+                                                                <textarea
+                                                                    value={editingTask.description || ""}
+                                                                    onChange={(e) =>
+                                                                        setEditingTask((prev) => ({
+                                                                            ...prev,
+                                                                            description: e.target.value
+                                                                        }))
+                                                                    }
+                                                                    rows={2}
+                                                                    className="w-full rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
+                                                                    placeholder="Optional description"
+                                                                />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p
+                                                                    className={`text-sm font-medium ${
+                                                                        isCompleted
+                                                                            ? "line-through text-slate-400"
+                                                                            : "text-slate-800"
+                                                                    }`}
+                                                                >
+                                                                    {task.title}
+                                                                </p>
+                                                                {task.description && (
+                                                                    <p
+                                                                        className={`mt-0.5 text-xs ${
+                                                                            isCompleted
+                                                                                ? "text-slate-300"
+                                                                                : "text-slate-500"
+                                                                        }`}
+                                                                    >
+                                                                        {task.description}
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col items-end gap-1">
+                                                    {isEditingThis ? (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={handleSaveEditTask}
+                                                                className="rounded-lg bg-pink-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-pink-700"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setEditingTask(null)}
+                                                                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => handleStartEditTask(task)}
+                                                                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteTask(task.id)}
+                                                                className="rounded-lg bg-red-500 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-600"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    <span
+                                                        className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                                            isCompleted
+                                                                ? "bg-emerald-50 text-emerald-600"
+                                                                : "bg-amber-50 text-amber-700"
+                                                        }`}
+                                                    >
+                                                        {isCompleted ? "Completed" : "Pending"}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* Add task form */}
+                        <div className="mt-6 border-t border-slate-100 pt-4">
+                            {showAddTaskForm ? (
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+                                    <div className="mb-2">
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            Task title
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newTask.title}
+                                            onChange={(e) =>
+                                                setNewTask((prev) => ({
+                                                    ...prev,
+                                                    title: e.target.value
+                                                }))
+                                            }
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
+                                            placeholder="e.g. Milk and eggs"
+                                            autoFocus
+                                            onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
+                                        />
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                                            Description (optional)
+                                        </label>
+                                        <textarea
+                                            rows={2}
+                                            value={newTask.description}
+                                            onChange={(e) =>
+                                                setNewTask((prev) => ({
+                                                    ...prev,
+                                                    description: e.target.value
+                                                }))
+                                            }
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
+                                            placeholder="Add details like location, time, or notes"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setShowAddTaskForm(false)
+                                                setNewTask({ title: "", description: "", status: "pending" })
+                                            }}
+                                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleAddTask}
+                                            className="rounded-xl bg-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-pink-300 hover:bg-pink-700 hover:shadow-md transition"
+                                        >
+                                            Add task
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        setShowAddTaskForm(true)
+                                        setEditingTask(null)
+                                    }}
+                                    className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-slate-400 hover:bg-black hover:shadow-md transition"
+                                >
+                                    <span className="mr-2 text-base leading-none">+</span>
+                                    Add task
+                                </button>
+                            )}
+                        </div>
                     </div>
-                ) : (
-                    <div className="flex-1 flex items-center justify-center bg-gray-100">
-                        <p className="text-gray-500 text-lg">Select a list to view details</p>
-                    </div>
-                )}
-            </div>
+                </div>
+            </main>
         </>
     )
 }
