@@ -10,7 +10,8 @@ function Login() {
 	const [message, setMessage] = useState('');
 	const [messageType, setMessageType] = useState('');
 
-	const API_URL = import.meta.env.VITE_API_URL; 
+	const API_URL = import.meta.env.VITE_API_URL || "https://to-do-list-1-c0qq.onrender.com";
+ 
 
 	const handleLogin = async () => {
 		try {
