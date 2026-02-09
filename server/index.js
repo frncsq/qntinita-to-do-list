@@ -7,8 +7,6 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-import cors from "cors";
-
 app.use(cors({
   origin: [
     "http://localhost:5173",
