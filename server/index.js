@@ -18,7 +18,8 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.options("*", cors()); // handle preflight
+app.use(cors());
+// handle preflight
 
 app.use(session({
   secret: '1234567890', 
