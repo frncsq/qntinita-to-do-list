@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Login from "./login.jsx";
-import Register from "./pages/register.jsx";
+import Register from "./client/pages/register.jsx";
 import Home from "./pages/home.jsx";
 
 function App() {
