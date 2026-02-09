@@ -7,7 +7,7 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors({origin: ['http://localhost:5173', 'qntinita-to-do-list.vercel.app'], credentials: true}));
+app.use(cors({origin: ['http://localhost:5173', 'https://qntinita-to-do-list.vercel.app'], credentials: true}));
 app.use(session({
   secret: '1234567890', 
   resave: false,
