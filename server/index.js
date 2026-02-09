@@ -10,8 +10,8 @@ app.use(express.json());
 app.use(cors({
   origin: [
     
-    "https://qntinita-to-do-list-dzay7f8xu-rises-projects-b13889a1.vercel.app",
-    "https://qntinita-to-do-list.vercel.app"
+    "https://qntinita-to-do-list-git-main-rises-projects-b13889a1.vercel.app/",
+    
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
