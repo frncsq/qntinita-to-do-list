@@ -12,8 +12,9 @@ function Home() {
     const [isEditing, setIsEditing] = useState(false)
     const [error, setError] = useState("")
 
-    // Simple in-memory tasks grouped by listId to match the UI concept
-    const [tasks, setTasks] = useState([])
+    // Tasks grouped by listId, persisted via backend endpoints
+    // Shape: { [listId]: Array<{ id, list_id, title, description, status }> }
+    const [tasksByList, setTasksByList] = useState({})
     const [showAddTaskForm, setShowAddTaskForm] = useState(false)
     const [newTask, setNewTask] = useState({ title: "", description: "", status: "pending" })
     const [editingTask, setEditingTask] = useState(null)
@@ -30,13 +31,36 @@ function Home() {
             setError("")
             const response = await axios.get(`${API_URL}/get-list`)
             if (response.data.success) {
-                setLists(response.data.list)
+                const fetchedLists = response.data.list || []
+                setLists(fetchedLists)
+
+                // Load items for each list so counters are in sync with backend
+                fetchedLists.forEach((list) => {
+                    fetchItemsForList(list.id)
+                })
             }
         } catch (error) {
             console.error("Error fetching lists:", error)
             setError("Failed to load lists")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchItemsForList = async (listId) => {
+        if (!listId) return
+
+        try {
+            const response = await axios.get(`${API_URL}/get-items/${listId}`)
+            if (response.data.success) {
+                const items = response.data.items || []
+                setTasksByList((prev) => ({
+                    ...prev,
+                    [listId]: items
+                }))
+            }
+        } catch (error) {
+            console.error("Error fetching items for list:", listId, error)
         }
     }
 
@@ -96,8 +120,12 @@ function Home() {
                 listTitle: selectedList.title
             })
             if (response.data.success) {
-                // Remove any in-memory tasks for this list as well
-                setTasks((prev) => prev.filter((t) => t.listId !== selectedList.id))
+                // Remove any cached tasks for this list as well
+                setTasksByList((prev) => {
+                    const next = { ...prev }
+                    delete next[selectedList.id]
+                    return next
+                })
                 setSelectedList(null)
                 fetchLists()
             }
@@ -113,6 +141,8 @@ function Home() {
         setIsEditing(false)
         setShowAddTaskForm(false)
         setEditingTask(null)
+        // Ensure tasks for this list are loaded from backend
+        fetchItemsForList(list.id)
     }
 
     const handleBackToLists = () => {
@@ -124,41 +154,64 @@ function Home() {
     }
 
     // --- Task handlers ---
-    const selectedListTasks = selectedList
-        ? tasks.filter((task) => task.listId === selectedList.id)
-        : []
+    const selectedListTasks = selectedList ? tasksByList[selectedList.id] || [] : []
 
-    const handleAddTask = () => {
+    const handleAddTask = async () => {
         if (!selectedList || !newTask.title.trim()) return
 
-        const taskToAdd = {
-            id: Date.now(),
-            listId: selectedList.id,
-            title: newTask.title.trim(),
-            description: newTask.description.trim(),
-            status: "pending"
+        try {
+            await axios.post(`${API_URL}/add-item`, {
+                list_id: selectedList.id,
+                title: newTask.title.trim(),
+                description: newTask.description.trim(),
+                status: "pending"
+            })
+
+            setNewTask({ title: "", description: "", status: "pending" })
+            setShowAddTaskForm(false)
+
+            // Refresh tasks for this list from backend
+            fetchItemsForList(selectedList.id)
+        } catch (error) {
+            console.error("Error adding task:", error)
+            setError("Failed to add task")
         }
-
-        setTasks((prev) => [...prev, taskToAdd])
-        setNewTask({ title: "", description: "", status: "pending" })
-        setShowAddTaskForm(false)
     }
 
-    const handleToggleTaskStatus = (taskId) => {
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.id === taskId
-                    ? {
-                          ...task,
-                          status: task.status === "completed" ? "pending" : "completed"
-                      }
-                    : task
-            )
-        )
+    const handleToggleTaskStatus = async (taskId) => {
+        if (!selectedList) return
+
+        const tasksForList = tasksByList[selectedList.id] || []
+        const task = tasksForList.find((t) => t.id === taskId)
+        if (!task) return
+
+        const newStatus = task.status === "completed" ? "pending" : "completed"
+
+        try {
+            await axios.post(`${API_URL}/edit-item`, {
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                status: newStatus
+            })
+
+            fetchItemsForList(selectedList.id)
+        } catch (error) {
+            console.error("Error updating task status:", error)
+            setError("Failed to update task")
+        }
     }
 
-    const handleDeleteTask = (taskId) => {
-        setTasks((prev) => prev.filter((task) => task.id !== taskId))
+    const handleDeleteTask = async (taskId) => {
+        if (!selectedList) return
+
+        try {
+            await axios.post(`${API_URL}/delete-item`, { id: taskId })
+            fetchItemsForList(selectedList.id)
+        } catch (error) {
+            console.error("Error deleting task:", error)
+            setError("Failed to delete task")
+        }
     }
 
     const handleStartEditTask = (task) => {
@@ -166,19 +219,27 @@ function Home() {
         setShowAddTaskForm(false)
     }
 
-    const handleSaveEditTask = () => {
+    const handleSaveEditTask = async () => {
         if (!editingTask || !editingTask.title.trim()) {
             return
         }
 
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.id === editingTask.id
-                    ? { ...task, title: editingTask.title.trim(), description: editingTask.description.trim() }
-                    : task
-            )
-        )
-        setEditingTask(null)
+        try {
+            await axios.post(`${API_URL}/edit-item`, {
+                id: editingTask.id,
+                title: editingTask.title.trim(),
+                description: (editingTask.description || "").trim(),
+                status: editingTask.status || "pending"
+            })
+
+            setEditingTask(null)
+            if (selectedList) {
+                fetchItemsForList(selectedList.id)
+            }
+        } catch (error) {
+            console.error("Error saving task:", error)
+            setError("Failed to save task")
+        }
     }
 
     if (loading) {
@@ -265,7 +326,7 @@ function Home() {
                         ) : (
                             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                                 {lists.map((list) => {
-                                    const itemCount = tasks.filter((t) => t.listId === list.id).length
+                                    const itemCount = (tasksByList[list.id] || []).length
                                     const countLabel = `${itemCount} item${itemCount === 1 ? "" : "s"}`
 
                                     return (
