@@ -33,7 +33,7 @@ function Login() {
 			}
 		} catch (error) {
 			if (error.response?.status === 401) {
-				setMessage('Invalid login credentials');
+				setMessage('Invalid username or password');
 				setMessageType('error');
 			} else {
 				setMessage('Invalid credentials.');
