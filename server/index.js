@@ -7,7 +7,8 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors({
+
+const corsOptions = {
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
@@ -16,9 +17,12 @@ app.use(cors({
     'https://qntinita-to-do-list.vercel.app',
   ],
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(session({
   secret: '1234567890', 
@@ -78,41 +82,63 @@ app.post('/delete-list', async (req, res) => {
 
 app.get('/get-items/:id', async (req, res) => {
   const listId = req.params.id;
-
-  const result = await pool.query(
-    "SELECT id, list_id, title, description, status FROM items WHERE list_id = $1",
-    [listId]
-  );
-
-  res.json({
-    success: true,
-    items: result.rows
-  });
+  try {
+    const result = await pool.query(
+      "SELECT id, list_id, description, status FROM items WHERE list_id = $1",
+      [listId]
+    );
+    // Map description to title for frontend (table has no title column)
+    const items = result.rows.map((row) => ({ ...row, title: row.description }));
+    res.status(200).json({ success: true, items });
+  } catch (err) {
+    console.error('get-items error:', err.message, err.code);
+    const isMissingColumn = err.code === '42703';
+    res.status(500).json({
+      success: false,
+      message: isMissingColumn
+        ? 'Database schema mismatch: run schema.sql on your Render PostgreSQL (see server/schema.sql)'
+        : 'Failed to fetch items',
+    });
+  }
 });
 
 
 app.post('/add-item', async (req, res) => {
   const { list_id, title, description, status } = req.body;
-
-  await pool.query(
-    "INSERT INTO items (list_id, title, description, status) VALUES ($1, $2, $3, $4)",
-    [list_id, title, description, status]
-  );
-
-  res.json({ success: true });
+  const desc = description ?? title ?? '';
+  try {
+    await pool.query(
+      "INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3)",
+      [list_id, desc, status ?? 'pending']
+    );
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error('add-item error:', err.message, err.code);
+    res.status(500).json({
+      success: false,
+      message: err.code === '42703' ? 'Database schema mismatch: run schema.sql on your Render PostgreSQL' : 'Failed to add item',
+    });
+  }
 });
 
 
 
 app.post('/edit-item', async (req, res) => {
   const { id, title, description, status } = req.body;
-
-  await pool.query(
-    "UPDATE items SET title=$1, description=$2, status=$3 WHERE id=$4",
-    [title, description, status, id]
-  );
-
-  res.json({ success: true });
+  const desc = description ?? title ?? '';
+  try {
+    await pool.query(
+      "UPDATE items SET description=$1, status=$2 WHERE id=$3",
+      [desc, status ?? 'pending', id]
+    );
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('edit-item error:', err.message, err.code);
+    res.status(500).json({
+      success: false,
+      message: err.code === '42703' ? 'Database schema mismatch: run schema.sql' : 'Failed to edit item',
+    });
+  }
 });
 
 
@@ -122,10 +148,16 @@ app.post('/edit-item', async (req, res) => {
 
 app.post('/delete-item', async (req, res) => {
   const { id } = req.body;
-
-  await pool.query("DELETE FROM items WHERE id=$1", [id]);
-
-  res.json({ success: true });
+  try {
+    await pool.query("DELETE FROM items WHERE id=$1", [id]);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('delete-item error:', err.message, err.code);
+    res.status(500).json({
+      success: false,
+      message: err.code === '42703' ? 'Database schema mismatch: run schema.sql' : 'Failed to delete item',
+    });
+  }
 });
 
 

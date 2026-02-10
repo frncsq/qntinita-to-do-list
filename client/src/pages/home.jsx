@@ -12,8 +12,7 @@ function Home() {
     const [isEditing, setIsEditing] = useState(false)
     const [error, setError] = useState("")
 
-    // Tasks grouped by listId, persisted via backend endpoints
-    // Shape: { [listId]: Array<{ id, list_id, title, description, status }> }
+
     const [tasksByList, setTasksByList] = useState({})
     const [showAddTaskForm, setShowAddTaskForm] = useState(false)
     const [newTask, setNewTask] = useState({ title: "", description: "", status: "pending" })

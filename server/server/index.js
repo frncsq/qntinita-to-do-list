@@ -7,7 +7,8 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-app.use(cors({
+
+const corsOptions = {
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
@@ -16,9 +17,12 @@ app.use(cors({
     'https://qntinita-to-do-list.vercel.app',
   ],
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(session({
   secret: '1234567890', 
   resave: false,
@@ -80,13 +84,14 @@ app.get('/get-items/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, list_id, title, description, status FROM items WHERE list_id = $1",
+      "SELECT id, list_id, description, status FROM items WHERE list_id = $1",
       [listId]
     );
-
+    // Map description to title for frontend (table has no title column)
+    const items = result.rows.map((row) => ({ ...row, title: row.description }));
     res.status(200).json({
       success: true,
-      items: result.rows,
+      items,
     });
   } catch (error) {
     console.error('Error fetching items:', error);
@@ -98,24 +103,25 @@ app.get('/get-items/:id', async (req, res) => {
 app.post('/add-item', async (req, res) => {
   const { list_id, title, description, status } = req.body;
 
-  if (!list_id || !title) {
+  const desc = description ?? title ?? '';
+  if (!list_id) {
     return res
       .status(400)
-      .json({ success: false, message: 'list_id and title are required' });
+      .json({ success: false, message: 'list_id is required' });
   }
 
   const itemStatus = status || 'pending';
 
   try {
     const result = await pool.query(
-      "INSERT INTO items (list_id, title, description, status) VALUES ($1, $2, $3, $4) RETURNING id, list_id, title, description, status",
-      [list_id, title, description || '', itemStatus]
+      "INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3) RETURNING id, list_id, description, status",
+      [list_id, desc, itemStatus]
     );
-
+    const row = result.rows[0];
     res.status(201).json({
       success: true,
       message: 'Item added successfully',
-      item: result.rows[0],
+      item: { ...row, title: row.description },
     });
   } catch (error) {
     console.error('Error adding item:', error);
@@ -127,6 +133,7 @@ app.post('/add-item', async (req, res) => {
 
 app.post('/edit-item', async (req, res) => {
   const { id, title, description, status } = req.body;
+  const desc = description ?? title ?? '';
 
   if (!id) {
     return res
@@ -136,8 +143,8 @@ app.post('/edit-item', async (req, res) => {
 
   try {
     const result = await pool.query(
-      "UPDATE items SET title=$1, description=$2, status=$3 WHERE id=$4 RETURNING id, list_id, title, description, status",
-      [title, description, status, id]
+      "UPDATE items SET description=$1, status=$2 WHERE id=$3 RETURNING id, list_id, description, status",
+      [desc, status ?? 'pending', id]
     );
 
     if (result.rowCount === 0) {
@@ -146,10 +153,11 @@ app.post('/edit-item', async (req, res) => {
         .json({ success: false, message: 'Item not found' });
     }
 
+    const row = result.rows[0];
     res.status(200).json({
       success: true,
       message: 'Item updated successfully',
-      item: result.rows[0],
+      item: { ...row, title: row.description },
     });
   } catch (error) {
     console.error('Error editing item:', error);
