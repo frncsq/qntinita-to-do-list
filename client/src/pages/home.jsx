@@ -157,6 +157,11 @@ function Home() {
 
     const handleAddTask = async () => {
         if (!selectedList || !newTask.title.trim()) return
+        if (!newTask.description.trim()) {
+            setError("Description is required")
+            return
+        }
+        setError("")
 
         try {
             await axios.post(`${API_URL}/add-item`, {
@@ -219,9 +224,13 @@ function Home() {
     }
 
     const handleSaveEditTask = async () => {
-        if (!editingTask || !editingTask.title.trim()) {
+        if (!editingTask || !editingTask.title.trim()) return
+        const desc = (editingTask.description ?? "").trim()
+        if (!desc) {
+            setError("Description is required")
             return
         }
+        setError("")
 
         try {
             await axios.post(`${API_URL}/edit-item`, {
@@ -496,7 +505,8 @@ function Home() {
                                                                     }
                                                                     rows={2}
                                                                     className="w-full rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
-                                                                    placeholder="Optional description"
+                                                                    placeholder="Description (required)"
+                                                                    required
                                                                 />
                                                             </>
                                                         ) : (
@@ -601,7 +611,7 @@ function Home() {
                                     </div>
                                     <div className="mb-3">
                                         <label className="block text-xs font-medium text-slate-500 mb-1">
-                                            Description (optional)
+                                            Description <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             rows={2}
@@ -614,6 +624,7 @@ function Home() {
                                             }
                                             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
                                             placeholder="Add details like location, time, or notes"
+                                            required
                                         />
                                     </div>
                                     <div className="flex justify-end gap-2">
