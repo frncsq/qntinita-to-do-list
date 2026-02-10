@@ -7,29 +7,18 @@ import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
 app.use(express.json());
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://qntinita-to-do-list-git-main-rises-projects-b13889a1.vercel.app',
-  'https://qntinita-to-do-list-dzay7f8xu-rises-projects-b13889a1.vercel.app',
-];
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://qntinita-to-do-list-git-main-rises-projects-b13889a1.vercel.app',
+    'https://qntinita-to-do-list-dzay7f8xu-rises-projects-b13889a1.vercel.app',
+    'https://qntinita-to-do-list.vercel.app',
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
+}));
 
-app.use(cors(corsOptions));
-// Explicitly handle preflight for all routes
-app.options('*', cors(corsOptions));
+app.options('*', cors());
 
 app.use(session({
   secret: '1234567890', 
@@ -39,7 +28,7 @@ app.use(session({
 }));
 
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 
 
