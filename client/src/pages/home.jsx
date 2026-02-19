@@ -260,6 +260,16 @@ function Home() {
             </>
         )
     }
+    const handleLogout = async () => {
+        try {
+            await axios.post(`${API_URL}/logout`, {}, { withCredentials: true })
+            navigate("/") // redirect to login page
+        } catch (error) {
+            console.error("Logout failed:", error)
+            setError("Failed to logout")
+        }
+    }
+    
 
     // --- First screen: My To-Do Lists ---
     if (!selectedList) {
@@ -604,7 +614,7 @@ function Home() {
                                                 }))
                                             }
                                             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-200"
-                                            placeholder="e.g. Milk and eggs"
+                                            placeholder="e.g. Kumporme ubraem"
                                             autoFocus
                                             onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
                                         />
