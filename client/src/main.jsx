@@ -16,7 +16,6 @@ createRoot(document.getElementById('root')).render(
           <Route index element={<Home />} />            {/* Default page "/" */}
           <Route path="Home" element={<Home />} />      {/* "/Home" */}
           <Route path="Register" element={<Register />} />  {/* "/Register" */}
-          <Route path="ListItem" element={<ListItem />} />  {/* "/ListItem" */}
         </Route>
       </Routes>
     </BrowserRouter>
