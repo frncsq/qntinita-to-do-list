@@ -6,6 +6,8 @@ function Header() {
     const API_URL = import.meta.env.VITE_API_URL
 
     const handleLogout = async () => {
+        if (!window.confirm("Are you sure you want to logout?")) return
+
         try {
             const response = await axios.post(`${API_URL}/logout`, {}, {
                 withCredentials: true

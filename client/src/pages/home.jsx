@@ -212,6 +212,11 @@ function Home() {
     const handleDeleteTask = async (taskId) => {
         if (!selectedList) return
 
+        const tasksForList = tasksByList[selectedList.id] || []
+        const task = tasksForList.find((t) => t.id === taskId)
+        
+        if (!window.confirm(`Delete "${task?.title}"?`)) return
+
         try {
             await axios.post(`${API_URL}/delete-item`, { id: taskId })
             fetchItemsForList(selectedList.id)
