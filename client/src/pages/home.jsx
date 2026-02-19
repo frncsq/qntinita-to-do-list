@@ -390,16 +390,12 @@ function Home() {
                         )}
                     </div>
                 </main>
-                
-            {/* Logout button */}
-            <div className="flex justify-end mt-4">
                 <button
                     onClick={handleLogout}
-                    className="inline-flex items-center rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 shadow transition hover:bg-pink-100 hover:text-pink-700"
+                    className="fixed bottom-6 right-6 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-400 hover:bg-red-600 hover:shadow-lg transition z-50"
                 >
                     Logout
                 </button>
-            </div>
             </>
         )
     }
@@ -691,6 +687,12 @@ function Home() {
                     </div>
                 </div>
             </main>
+            <button
+                onClick={handleLogout}
+                className="fixed bottom-6 right-6 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-400 hover:bg-red-600 hover:shadow-lg transition z-50"
+            >
+                Logout
+            </button>
         </>
     )
 }
