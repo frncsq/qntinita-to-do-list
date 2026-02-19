@@ -256,27 +256,12 @@ function Home() {
     if (loading) {
         return (
             <>
-                <Header onLogout={handleLogout} />
+                <Header />
                 <div className="flex h-screen items-center justify-center bg-slate-50">
                     <p className="text-pink-600 text-lg">Loading...</p>
                 </div>
             </>
         )
-    }
-    const handleLogout = async () => {
-        try {
-            const response = await axios.post(`${API_URL}/logout`, {}, {
-                withCredentials: true
-            })
-            if (response.data.success) {
-                navigate("/") // redirect to login
-            } else {
-                setError(response.data.message || "Failed to logout")
-            }
-        } catch (error) {
-            console.error("Logout failed:", error)
-            setError("Failed to logout")
-        }
     }
     
     
@@ -285,7 +270,7 @@ function Home() {
     if (!selectedList) {
         return (
             <>
-                <Header onLogout={handleLogout} />
+                <Header />
                 <main className="min-h-screen bg-slate-50">
                     <div className="max-w-5xl mx-auto px-4 py-10">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -390,12 +375,6 @@ function Home() {
                         )}
                     </div>
                 </main>
-                <button
-                    onClick={handleLogout}
-                    className="fixed bottom-6 right-6 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-400 hover:bg-red-600 hover:shadow-lg transition z-50"
-                >
-                    Logout
-                </button>
             </>
         )
     }
@@ -403,7 +382,7 @@ function Home() {
     // --- Second screen: single list with its tasks ---
     return (
         <>
-            <Header onLogout={handleLogout} />
+            <Header />
             <main className="min-h-screen bg-slate-50">
                 <div className="max-w-3xl mx-auto px-4 py-8">
                     <button
@@ -687,12 +666,6 @@ function Home() {
                     </div>
                 </div>
             </main>
-            <button
-                onClick={handleLogout}
-                className="fixed bottom-6 right-6 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-400 hover:bg-red-600 hover:shadow-lg transition z-50"
-            >
-                Logout
-            </button>
         </>
     )
 }
