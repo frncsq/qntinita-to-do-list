@@ -380,6 +380,14 @@ function Home() {
                         )}
                     </div>
                 </main>
+<button
+    onClick={handleLogout}
+    className="fixed bottom-6 right-6 bg-pink-600 hover:bg-pink-700 text-white px-5 py-2.5 rounded-full shadow-lg shadow-pink-300 font-semibold text-sm transition-all hover:scale-105 z-50"
+>
+    Logout
+</button>
+
+                
             </>
         )
     }
