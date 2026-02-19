@@ -1,6 +1,8 @@
 import Header from "../components/header"
 import { useState, useEffect } from "react"
 import axios from "axios"
+import { useNavigate } from "react-router-dom"
+
 
 function Home() {
     const [lists, setLists] = useState([])
@@ -19,6 +21,7 @@ function Home() {
     const [editingTask, setEditingTask] = useState(null)
 
     const API_URL = import.meta.env.VITE_API_URL
+    const navigate = useNavigate()
 
     useEffect(() => {
         fetchLists()
@@ -253,7 +256,7 @@ function Home() {
     if (loading) {
         return (
             <>
-                <Header />
+                <Header onLogout={handleLogout} />
                 <div className="flex h-screen items-center justify-center bg-slate-50">
                     <p className="text-pink-600 text-lg">Loading...</p>
                 </div>
@@ -262,20 +265,27 @@ function Home() {
     }
     const handleLogout = async () => {
         try {
-            await axios.post(`${API_URL}/logout`, {}, { withCredentials: true })
-            navigate("/") // redirect to login page
+            const response = await axios.post(`${API_URL}/logout`, {}, {
+                withCredentials: true
+            })
+            if (response.data.success) {
+                navigate("/") // redirect to login
+            } else {
+                setError(response.data.message || "Failed to logout")
+            }
         } catch (error) {
             console.error("Logout failed:", error)
             setError("Failed to logout")
         }
     }
     
+    
 
     // --- First screen: My To-Do Lists ---
     if (!selectedList) {
         return (
             <>
-                <Header />
+                <Header onLogout={handleLogout} />
                 <main className="min-h-screen bg-slate-50">
                     <div className="max-w-5xl mx-auto px-4 py-10">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -397,7 +407,7 @@ function Home() {
     // --- Second screen: single list with its tasks ---
     return (
         <>
-            <Header />
+            <Header onLogout={handleLogout} />
             <main className="min-h-screen bg-slate-50">
                 <div className="max-w-3xl mx-auto px-4 py-8">
                     <button
